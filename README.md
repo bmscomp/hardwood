@@ -869,6 +869,12 @@ try (ParquetReader<Group> reader = ParquetReader.builder(new GroupReadSupport(),
 The `hardwood` CLI lets you inspect and convert Parquet files from the command line.
 Pre-built native binaries for Linux, macOS, and Windows are available from the [early-access release](https://github.com/hardwood-hq/hardwood/releases/tag/1.0-early-access).
 
+> **macOS:** The binary is not notarized. On first run, macOS Gatekeeper will block it. Remove the quarantine flag after extracting:
+>
+> ```shell
+> xattr -r -d com.apple.quarantine hardwood-cli-*/
+> ```
+
 ### Available Commands
 
 | Command | Description |

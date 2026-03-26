@@ -241,7 +241,7 @@ jobs:
   # Build native CLI executable per runner and publish as early-access release
   package:
     if: github.event_name == 'push'
-    needs: build
+    needs: [ build, integration-tests ]
     name: 'Build native CLI on ${{ matrix.os }}'
     strategy:
       fail-fast: true

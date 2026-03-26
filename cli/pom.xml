@@ -296,9 +296,9 @@
                   <target>
                     <mkdir dir="${project.build.directory}/native-libs"/>
                     <copy todir="${project.build.directory}/native-libs" flatten="true">
-                      <fileset dir="${project.build.directory}/zstd-native/${zstd.os.dir}/${zstd.arch.dir}" erroronmissingdir="false"/>
-                      <fileset dir="${project.build.directory}/snappy-native/org/xerial/snappy/native/${snappy.os.dir}/${snappy.arch.dir}" erroronmissingdir="false"/>
-                      <fileset dir="${project.build.directory}/lz4-native/net/jpountz/util/${lz4.os.dir}/${lz4.arch.dir}" erroronmissingdir="false"/>
+                      <fileset dir="${project.build.directory}/zstd-native/${zstd.os.dir}/${zstd.arch.dir}" includes="${dist.lib.extension}" erroronmissingdir="false"/>
+                      <fileset dir="${project.build.directory}/snappy-native/org/xerial/snappy/native/${snappy.os.dir}/${snappy.arch.dir}" includes="${dist.lib.extension}" erroronmissingdir="false"/>
+                      <fileset dir="${project.build.directory}/lz4-native/net/jpountz/util/${lz4.os.dir}/${lz4.arch.dir}" includes="${dist.lib.extension}" erroronmissingdir="false"/>
                     </copy>
                   </target>
                 </configuration>
@@ -339,6 +339,7 @@
       <properties>
         <dist.os>linux</dist.os>
         <dist.format>tar.gz</dist.format>
+        <dist.lib.extension>*.so</dist.lib.extension>
         <zstd.os.dir>linux</zstd.os.dir>
         <snappy.os.dir>Linux</snappy.os.dir>
         <lz4.os.dir>linux</lz4.os.dir>
@@ -352,6 +353,7 @@
       <properties>
         <dist.os>macos</dist.os>
         <dist.format>tar.gz</dist.format>
+        <dist.lib.extension>*.dylib</dist.lib.extension>
         <zstd.os.dir>darwin</zstd.os.dir>
         <snappy.os.dir>Mac</snappy.os.dir>
         <lz4.os.dir>darwin</lz4.os.dir>
@@ -366,6 +368,7 @@
         <executable-suffix>.exe</executable-suffix>
         <dist.os>windows</dist.os>
         <dist.format>zip</dist.format>
+        <dist.lib.extension>*.dll</dist.lib.extension>
         <zstd.os.dir>win</zstd.os.dir>
         <snappy.os.dir>Windows</snappy.os.dir>
         <lz4.os.dir>win32</lz4.os.dir>
@@ -384,7 +387,7 @@
       </properties>
     </profile>
     <profile>
-      <id>arch-x86_64</id>
+      <id>arch-x86_64-amd64</id>
       <activation>
         <os><arch>amd64</arch></os>
       </activation>
@@ -393,6 +396,18 @@
         <zstd.arch.dir>amd64</zstd.arch.dir>
         <snappy.arch.dir>x86_64</snappy.arch.dir>
         <lz4.arch.dir>amd64</lz4.arch.dir>
+      </properties>
+    </profile>
+    <profile>
+      <id>arch-x86_64</id>
+      <activation>
+        <os><arch>x86_64</arch></os>
+      </activation>
+      <properties>
+        <dist.arch>x86_64</dist.arch>
+        <zstd.arch.dir>x86_64</zstd.arch.dir>
+        <snappy.arch.dir>x86_64</snappy.arch.dir>
+        <lz4.arch.dir>x86_64</lz4.arch.dir>
       </properties>
     </profile>
   </profiles>
