@@ -190,6 +190,10 @@ FilterPredicate filter = FilterPredicate.and(
     FilterPredicate.lt("age", 65)
 );
 
+// IN filter
+FilterPredicate filter = FilterPredicate.in("department_id", 1, 3, 7);
+FilterPredicate filter = FilterPredicate.inStrings("city", "NYC", "LA", "Chicago");
+
 try (ParquetFileReader fileReader = ParquetFileReader.open(InputFile.of(path));
      RowReader rowReader = fileReader.createRowReader(filter)) {
 
@@ -200,11 +204,11 @@ try (ParquetFileReader fileReader = ParquetFileReader.open(InputFile.of(path));
 }
 ```
 
-Supported operators: `eq`, `notEq`, `lt`, `ltEq`, `gt`, `gtEq`.
-Supported types: `int`, `long`, `float`, `double`, `boolean`, `String`.
-Logical combinators: `and`, `or`, `not` — the `and` and `or` combinators also accept varargs for three or more conditions.
+Supported operators: `eq`, `notEq`, `lt`, `ltEq`, `gt`, `gtEq`, `in`, `inStrings`.
+Supported types: `int`, `long`, `float`, `double`, `boolean`, `String` (comparison operators); `int`, `long`, `String` (`in`/`inStrings`).
+Logical combinators: `and`, `or`, `not`; the `and` and `or` combinators also accept varargs for three or more conditions.
 
-Filtering operates on the physical column type. Logical types like DATE (stored as INT32) and TIMESTAMP (stored as INT64) are filtered using their underlying physical type — for example, filter a DATE column with `FilterPredicate.gt("date_col", 19000)` (days since epoch).
+Filtering operates on the physical column type. Logical types like DATE (stored as INT32) and TIMESTAMP (stored as INT64) are filtered using their underlying physical type; for example, filter a DATE column with `FilterPredicate.gt("date_col", 19000)` (days since epoch).
 
 Filters work with all reader types: `RowReader`, `ColumnReader`, `AvroRowReader`, and across multi-file readers.
 
