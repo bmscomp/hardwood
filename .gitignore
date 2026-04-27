@@ -51,3 +51,6 @@ release-output.log
 # Claude
 .claude/worktrees/
 __pycache__/
+
+# Large test fixtures — too big for GitHub (>100 MB); generated locally by tools/simple-datagen.py
+core/src/test/resources/large_file_test.parquet

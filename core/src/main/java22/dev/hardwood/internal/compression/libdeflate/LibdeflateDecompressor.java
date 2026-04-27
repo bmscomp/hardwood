@@ -47,43 +47,7 @@ public final class LibdeflateDecompressor implements Decompressor {
             MemorySegment actualInSizePtr = borrowSizePtr(IN_SIZE_PTR);
             MemorySegment actualOutSizePtr = borrowSizePtr(OUT_SIZE_PTR);
 
-            long inputOffset = 0;
-            long outputOffset = 0;
-
-            // Handle concatenated GZIP members
-            while (outputOffset < uncompressedSize && inputOffset < compressedSize) {
-                int result;
-                try {
-                    result = (int) bindings.gzipDecompressEx.invokeExact(
-                            decompressor.handle(),
-                            input.asSlice(inputOffset),
-                            compressedSize - inputOffset,
-                            output.asSlice(outputOffset),
-                            uncompressedSize - outputOffset,
-                            actualInSizePtr,
-                            actualOutSizePtr);
-                }
-                catch (Throwable t) {
-                    throw new IOException("libdeflate invocation failed", t);
-                }
-
-                if (result != LibdeflateBindings.LIBDEFLATE_SUCCESS) {
-                    throw new IOException("libdeflate decompression failed: " +
-                            LibdeflateBindings.errorMessage(result));
-                }
-
-                long consumedInput = actualInSizePtr.get(ValueLayout.JAVA_LONG, 0);
-                long producedOutput = actualOutSizePtr.get(ValueLayout.JAVA_LONG, 0);
-
-                inputOffset += consumedInput;
-                outputOffset += producedOutput;
-            }
-
-            if (outputOffset != uncompressedSize) {
-                throw new IOException(String.format(
-                        "Decompressed size mismatch: expected %d, got %d",
-                        uncompressedSize, outputOffset));
-            }
+            decompressInto(bindings, decompressor.handle(), input, compressedSize, output, uncompressedSize);
 
             byte[] result = borrowOutputBuffer(uncompressedSize);
             MemorySegment.copy(output, ValueLayout.JAVA_BYTE, 0, result, 0, uncompressedSize);
@@ -93,6 +57,77 @@ public final class LibdeflateDecompressor implements Decompressor {
             pool.release(decompressor);
         }
     }
+
+    /// Decompresses GZIP-compressed data directly into a native [MemorySegment],
+    /// bypassing the native-to-heap copy performed by [#decompress].
+    ///
+    /// The returned segment is a thread-local scratch buffer that is valid only
+    /// until the next call to [#decompress] or [#decompressToSegment] on the same
+    /// thread. Callers must not retain a reference to it beyond the current decode.
+    ///
+    /// @param input          the compressed data as a [MemorySegment]
+    /// @param compressedSize number of bytes to consume from {@code input}
+    /// @param uncompressedSize expected decompressed byte count
+    /// @return a native segment containing exactly {@code uncompressedSize} bytes
+    public MemorySegment decompressToSegment(MemorySegment input, int compressedSize,
+                                             int uncompressedSize) throws IOException {
+        LibdeflatePool.DecompressorHandle decompressor = pool.acquire();
+        try {
+            LibdeflateBindings bindings = LibdeflateBindings.get();
+            MemorySegment output = borrowNativeOutput(uncompressedSize);
+            decompressInto(bindings, decompressor.handle(), input, compressedSize, output, uncompressedSize);
+            return output.asSlice(0, uncompressedSize);
+        }
+        finally {
+            pool.release(decompressor);
+        }
+    }
+
+    private void decompressInto(LibdeflateBindings bindings, MemorySegment decompressorHandle,
+                                MemorySegment input, int compressedSize,
+                                MemorySegment output, int uncompressedSize) throws IOException {
+        MemorySegment actualInSizePtr  = borrowSizePtr(IN_SIZE_PTR);
+        MemorySegment actualOutSizePtr = borrowSizePtr(OUT_SIZE_PTR);
+
+        long inputOffset  = 0;
+        long outputOffset = 0;
+
+        // Handle concatenated GZIP members
+        while (outputOffset < uncompressedSize && inputOffset < compressedSize) {
+            int result;
+            try {
+                result = (int) bindings.gzipDecompressEx.invokeExact(
+                        decompressorHandle,
+                        input.asSlice(inputOffset),
+                        compressedSize - inputOffset,
+                        output.asSlice(outputOffset),
+                        uncompressedSize - outputOffset,
+                        actualInSizePtr,
+                        actualOutSizePtr);
+            }
+            catch (Throwable t) {
+                throw new IOException("libdeflate invocation failed", t);
+            }
+
+            if (result != LibdeflateBindings.LIBDEFLATE_SUCCESS) {
+                throw new IOException("libdeflate decompression failed: " +
+                        LibdeflateBindings.errorMessage(result));
+            }
+
+            long consumedInput  = actualInSizePtr.get(ValueLayout.JAVA_LONG, 0);
+            long producedOutput = actualOutSizePtr.get(ValueLayout.JAVA_LONG, 0);
+
+            inputOffset  += consumedInput;
+            outputOffset += producedOutput;
+        }
+
+        if (outputOffset != uncompressedSize) {
+            throw new IOException(String.format(
+                    "Decompressed size mismatch: expected %d, got %d",
+                    uncompressedSize, outputOffset));
+        }
+    }
+
 
     private static MemorySegment borrowNativeOutput(int minSize) {
         MemorySegment seg = NATIVE_OUTPUT.get();
